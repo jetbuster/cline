@@ -15,6 +15,7 @@ import { WebviewProvider } from "./core/webview"
 import { createClineAPI } from "./exports"
 import { Logger } from "./services/logging/Logger"
 import { cleanupTestMode, initializeTestMode } from "./services/test/TestMode"
+import { ApiConfiguration } from "./shared/api"
 import { WebviewProviderType } from "./shared/webview/types"
 import "./utils/path" // necessary to have access to String.prototype.toPosix
 
@@ -487,6 +488,26 @@ export async function activate(context: vscode.ExtensionContext) {
 		}),
 		vscode.commands.registerCommand("cline.abortGitCommitMessage", () => {
 			GitCommitGenerator?.abort?.()
+		}),
+	)
+
+	if (context.extensionMode !== vscode.ExtensionMode.Production) {
+		context.subscriptions.push(
+			vscode.commands.registerCommand("cline.getApiConfiguration", async () => {
+				return WebviewProvider.getLastActiveInstance()?.controller.stateManager.getApiConfiguration()
+			}),
+		)
+	}
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand("cline.setApiConfiguration", async (apiConfiguration: ApiConfiguration) => {
+			const controller = WebviewProvider.getLastActiveInstance()?.controller
+			if (!controller) {
+				throw new Error("No active Cline controller found")
+			}
+
+			controller.stateManager.setApiConfiguration(apiConfiguration)
+			await controller.postStateToWebview()
 		}),
 	)
 
